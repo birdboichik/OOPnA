@@ -1,4 +1,4 @@
-using Moq;
+﻿using Moq;
 using TechTalk.SpecFlow;
 using Xunit;
 namespace SpaceBattle.Lib.TestsBDD.Steps
