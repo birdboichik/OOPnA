@@ -1,4 +1,4 @@
-using Hwdtech;
+﻿using Hwdtech;
 using Hwdtech.Ioc;
 using Moq;
 using Xunit;
@@ -21,11 +21,11 @@ public class ShootCommandTest
         mockShootable.SetupGet(m => m.Position);
         mockShootable.SetupGet(m => m.TorpedoVelocity);
 
-        var mProjectile = new Mock<IUObject>();
+        var mTorpedo = new Mock<IUObject>();
         IoC.Resolve<Hwdtech.ICommand>(
             "IoC.Register",
             "Game.GetTorpedo",
-            (object[] args) => mProjectile.Object
+            (object[] args) => mTorpedo.Object
         ).Execute();
 
         var mMoveStart = new Mock<ICommand>();
@@ -48,11 +48,11 @@ public class ShootCommandTest
         mockShootable.SetupGet(m => m.Position).Throws(new Exception());
         mockShootable.SetupGet(m => m.TorpedoVelocity);
 
-        var mProjectile = new Mock<IUObject>();
+        var mTorpedo = new Mock<IUObject>();
         IoC.Resolve<Hwdtech.ICommand>(
             "IoC.Register",
             "Game.GetTorpedo",
-            (object[] args) => mProjectile.Object
+            (object[] args) => mTorpedo.Object
         ).Execute();
 
         var mMoveStart = new Mock<ICommand>();
