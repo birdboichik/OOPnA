@@ -1,4 +1,4 @@
-using Scriban;
+﻿using Scriban;
 
 namespace SpaceBattle.Lib;
 
@@ -23,7 +23,7 @@ public class GenerateAdapterCodeStrategy : IStrategy
                 }{{end}}
             }"
         );
-        
+
         var result = template.Render(new { type, properties = type.GetProperties() });
 
         return result;
