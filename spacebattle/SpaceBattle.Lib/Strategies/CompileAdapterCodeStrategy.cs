@@ -2,7 +2,6 @@
 using Hwdtech;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-
 namespace SpaceBattle.Lib;
 
 public class CompileAdapterCodeStrategy : IStrategy
