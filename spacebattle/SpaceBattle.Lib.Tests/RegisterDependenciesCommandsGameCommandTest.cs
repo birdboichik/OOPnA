@@ -44,11 +44,11 @@ public class InitGameDependenciesTest
             (object[] args) => commands
         ).Execute();
 
-         IoC.Resolve<Hwdtech.ICommand>(
-            "IoC.Register",
-            "Game.Queue.Add",
-            (object[] args) => args[1]
-        ).Execute();
+        IoC.Resolve<Hwdtech.ICommand>(
+           "IoC.Register",
+           "Game.Queue.Add",
+           (object[] args) => args[1]
+       ).Execute();
 
         var mMacroCommand = new Mock<ICommand>();
         IoC.Resolve<Hwdtech.ICommand>(
@@ -107,5 +107,64 @@ public class InitGameDependenciesTest
         Assert.Equal(expectedRotate, IoC.Resolve<ICommand>("Game.Command.Rotate", mObj.Object).GetType());
         Assert.Equal(expectedShoot, IoC.Resolve<ICommand>("Game.Command.Shoot", mObj.Object).GetType());
         Assert.Equal(mMacroCommand.Object, IoC.Resolve<ICommand>("Game.Macro.Create.FromDependencies", new Mock<IUObject>().Object, type));
+    }
+    [Fact]
+    public void SuccessfullyExecuteMacroCommandGame()
+    {
+        var testFirstStrategy = new Mock<IStrategy>();
+        var testSecondStrategy = new Mock<IStrategy>();
+        var testFirstCommand = new Mock<ICommand>();
+        var testSecondCommand = new Mock<ICommand>();
+        testFirstStrategy.Setup(x => x.Run(It.IsAny<object[]>())).Returns(() => testFirstCommand.Object);
+        testSecondStrategy.Setup(x => x.Run(It.IsAny<object[]>())).Returns(() => testSecondCommand.Object);
+        var testFirstType = "Test.First";
+        var testSecondType = "Test.Second";
+        var commands = new Dictionary<string, IStrategy>(){
+            {testFirstType, testFirstStrategy.Object},
+            {testSecondType, testSecondStrategy.Object}
+        };
+
+        IoC.Resolve<Hwdtech.ICommand>(
+            "IoC.Register",
+            "Commands",
+            (object[] args) => commands
+        ).Execute();
+
+        IoC.Resolve<Hwdtech.ICommand>(
+           "IoC.Register",
+           "Game.Queue.Add",
+           (object[] args) => args[1]
+       ).Execute();
+
+        IoC.Resolve<Hwdtech.ICommand>(
+            "IoC.Register",
+            "Game.Command.Macro",
+            (object[] args) => new ActionCommand(() =>
+            {
+                foreach (var command in (IEnumerable<ICommand>)args[0])
+                {
+                    command.Execute();
+                }
+            })
+        ).Execute();
+
+        var type = "FirstTestAndSecondTest";
+        IoC.Resolve<Hwdtech.ICommand>(
+            "IoC.Register",
+            "Game.Macro.Get." + type,
+            (object[] args) => new List<string>() { "Test.First", "Test.Second" }
+        ).Execute();
+
+        var mObj = new Mock<IUObject>();
+        var id = Guid.NewGuid();
+
+        var registerDependenciesCommandsGameCommand = new RegisterDependenciesGameCommand(id);
+
+        registerDependenciesCommandsGameCommand.Execute();
+
+        IoC.Resolve<ICommand>("Game.Macro.Create.FromDependencies", new Mock<IUObject>().Object, type).Execute();
+
+        testFirstCommand.Verify(m => m.Execute(), Times.Once());
+        testSecondCommand.Verify(m => m.Execute(), Times.Once());
     }
 }
