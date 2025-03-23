@@ -5,15 +5,27 @@ using Xunit;
 
 namespace SpaceBattle.Lib.Tests;
 
-public class RegisterDependenciesCommandsGameCommandTest
+public class InitGameDependenciesTest
 {
-    public RegisterDependenciesCommandsGameCommandTest()
+    public InitGameDependenciesTest()
     {
         new InitScopeBasedIoCImplementationCommand().Execute();
         IoC.Resolve<Hwdtech.ICommand>("Scopes.Current.Set", IoC.Resolve<object>("Scopes.New", IoC.Resolve<object>("Scopes.Root"))).Execute();
+
+        IoC.Resolve<Hwdtech.ICommand>(
+            "IoC.Register",
+            "Game.InitDependecies",
+            (object[] args) => new InitGameDependenciesStrategy().Run(args)
+        ).Execute();
+
+        IoC.Resolve<Hwdtech.ICommand>(
+            "IoC.Register",
+            "Game.Command.InitDependecies",
+            (object[] args) => new InitGameDependenciesCommandsStrategy().Run(args)
+        ).Execute();
     }
     [Fact]
-    public void SuccessfullyRegisterDependenciesCommandsGameCommand()
+    public void SuccessfullyInitDependiesGame()
     {
         var typeMoveStart = "Move.Start";
         var typeShoot = "Shoot";
@@ -32,16 +44,24 @@ public class RegisterDependenciesCommandsGameCommandTest
             (object[] args) => commands
         ).Execute();
 
-        IoC.Resolve<Hwdtech.ICommand>(
-            "IoC.Register",
-            "Game.Command.InitDependecies",
-            (object[] args) => new InitGameDependenciesCommandsStrategy().Run(args)
-        ).Execute();
-
-        IoC.Resolve<Hwdtech.ICommand>(
+         IoC.Resolve<Hwdtech.ICommand>(
             "IoC.Register",
             "Game.Queue.Add",
             (object[] args) => args[1]
+        ).Execute();
+
+        var mMacroCommand = new Mock<ICommand>();
+        IoC.Resolve<Hwdtech.ICommand>(
+            "IoC.Register",
+            "Game.Command.Macro",
+            (object[] args) => mMacroCommand.Object
+        ).Execute();
+
+        var type = "MoveAndRotate";
+        IoC.Resolve<Hwdtech.ICommand>(
+            "IoC.Register",
+            "Game.Macro.Get." + type,
+            (object[] args) => new List<string>() { "Move.Start", "Rotate" }
         ).Execute();
 
         var mAdapterMoveStartable = new Mock<IMoveCommandStartable>();
@@ -79,54 +99,13 @@ public class RegisterDependenciesCommandsGameCommandTest
         var expectedRotate = typeof(RotateCommand);
         var expectedShoot = typeof(ShootCommand);
 
-        var registerDependenciesCommandsGameCommand = new RegisterDependenciesCommandsGameCommand(id);
+        var registerDependenciesCommandsGameCommand = new RegisterDependenciesGameCommand(id);
 
         registerDependenciesCommandsGameCommand.Execute();
-
         Assert.Equal(expectedMoveStart, IoC.Resolve<ICommand>("Game.Command.Move.Start", mObj.Object).GetType());
         Assert.Equal(expectedMoveEnd, IoC.Resolve<ICommand>("Game.Command.Move.End", mObj.Object).GetType());
         Assert.Equal(expectedRotate, IoC.Resolve<ICommand>("Game.Command.Rotate", mObj.Object).GetType());
         Assert.Equal(expectedShoot, IoC.Resolve<ICommand>("Game.Command.Shoot", mObj.Object).GetType());
-
-    }
-    [Fact]
-    public void ThrowExceptionCantAddQueueRegisterDependenciesCommand()
-    {
-        var commands = new Dictionary<string, IStrategy>(){
-            {"Move.Start", new StartMoveCommandStrategy()}
-        };
-        IoC.Resolve<Hwdtech.ICommand>(
-            "IoC.Register",
-            "Commands",
-            (object[] args) => commands
-        ).Execute();
-
-        IoC.Resolve<Hwdtech.ICommand>(
-            "IoC.Register",
-            "Game.Command.InitDependecies",
-            (object[] args) => new InitGameDependenciesCommandsStrategy().Run(args)
-        ).Execute();
-
-        var mQueueAdd = new Mock<ICommand>();
-        mQueueAdd.Setup(m => m.Execute()).Throws(new Exception());
-        IoC.Resolve<Hwdtech.ICommand>(
-            "IoC.Register",
-            "Game.Queue.Add",
-            (object[] args) => mQueueAdd.Object
-        ).Execute();
-
-        var mAdapter = new Mock<IMoveCommandStartable>();
-        IoC.Resolve<Hwdtech.ICommand>(
-            "IoC.Register",
-            "Adapters.Get",
-            (object[] args) => mAdapter.Object
-        ).Execute();
-
-        var mObj = new Mock<IUObject>();
-        var id = Guid.NewGuid();
-
-        var registerDependenciesCommandsGameCommand = new RegisterDependenciesCommandsGameCommand(id);
-
-        Assert.Throws<Exception>(() => registerDependenciesCommandsGameCommand.Execute());
+        Assert.Equal(mMacroCommand.Object, IoC.Resolve<ICommand>("Game.Macro.Create.FromDependencies", new Mock<IUObject>().Object, type));
     }
 }
